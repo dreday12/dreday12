@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draean Nash — Account Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+  :root{--bg:#0d0f14;--surface:#13161e;--surface2:#1a1e29;--border:#222633;--border-light:#2e3347;--text:#e2e4ec;--muted:#6b7089;--accent:#4f8ef7;--accent2:#7c5cfc;--critical:#f75c5c;--warn:#f7a84f;--ok:#4fcba0;}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;line-height:1.5;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;}
+  .header-left{display:flex;flex-direction:column;gap:2px;}
+  .header-title{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px;letter-spacing:-0.3px;color:var(--text);}
+  .header-title span{color:var(--accent);}
+  .header-sub{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .header-right{display:flex;align-items:center;gap:16px;}
+  .last-update{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-align:right;}
+  .refresh-btn{background:var(--surface2);border:1px solid var(--border-light);color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 14px;border-radius:3px;cursor:pointer;transition:background .15s;}
+  .refresh-btn:hover{background:var(--border);}
+  .main-wrap{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 57px);}
+  nav{background:var(--surface);border-right:1px solid var(--border);padding:20px 0;position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;}
+  .nav-section-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:0 18px 8px;margin-top:18px;}
+  .nav-item{display:flex;align-items:center;justify-content:space-between;padding:8px 18px;cursor:pointer;border-left:2px solid transparent;transition:all .12s;gap:8px;}
+  .nav-item:hover{background:var(--surface2);}
+  .nav-item.active{border-left-color:var(--accent);background:rgba(79,142,247,.06);}
+  .nav-account-name{font-size:12px;font-weight:500;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .nav-item.active .nav-account-name{color:var(--accent);}
+  .nav-risk-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .dot-critical{background:var(--critical);box-shadow:0 0 5px var(--critical);}
+  .dot-warning{background:var(--warn);}
+  .dot-ok{background:var(--ok);}
+  main{padding:28px;overflow-y:auto;}
+  .kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+  .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:16px 18px;}
+  .kpi-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .kpi-value{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;color:var(--text);line-height:1;}
+  .kpi-value.red{color:var(--critical);}
+  .kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+  .section-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .section-head h2{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.5px;color:var(--text);}
+  .section-divider{flex:1;height:1px;background:var(--border);}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:18px;}
+  .panel-title{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+  #account-detail{display:none;}
+  #overview-view{display:block;}
+  .account-header{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px 22px;margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;}
+  .account-name-big{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--text);margin-bottom:6px;}
+  .account-meta{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;}
+  .meta-chip{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .meta-chip .val{color:var(--text);}
+  .account-revenue-big{text-align:right;flex-shrink:0;}
+  .account-revenue-big .big-num{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;color:var(--accent);line-height:1;}
+  .account-revenue-big .label{font-size:10px;color:var(--muted);letter-spacing:.8px;margin-top:4px;}
+  .renewal-bar-wrap{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:18px;margin-bottom:20px;}
+  .renewal-bar-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer;}
+  .renewal-bar-row:hover .renewal-account-label{color:var(--accent);}
+  .renewal-account-label{width:200px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;transition:color .1s;}
+  .bar-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:3px;}
+  .bar-fill.critical{background:var(--critical);}
+  .bar-fill.warning{background:var(--warn);}
+  .bar-fill.ok{background:var(--ok);}
+  .renewal-days{font-family:'IBM Plex Mono',monospace;font-size:11px;width:70px;text-align:right;flex-shrink:0;}
+  .renewal-days.critical{color:var(--critical);font-weight:600;}
+  .renewal-days.warning{color:var(--warn);}
+  .renewal-days.ok{color:var(--ok);}
+  .renewal-date{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);width:80px;flex-shrink:0;}
+  .product-table{width:100%;border-collapse:collapse;}
+  .product-table th{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);}
+  .product-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text);vertical-align:middle;}
+  .product-table tr:last-child td{border-bottom:none;}
+  .product-table tbody tr:hover td{background:var(--surface2);cursor:pointer;}
+  .amount-cell{font-family:'IBM Plex Mono',monospace;font-size:11px;text-align:right;color:var(--accent);}
+  .risk-badge{display:inline-block;padding:2px 7px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.8px;text-transform:uppercase;font-weight:600;}
+  .risk-badge.critical{background:rgba(247,92,92,.15);color:var(--critical);border:1px solid rgba(247,92,92,.3);}
+  .risk-badge.warning{background:rgba(247,168,79,.15);color:var(--warn);border:1px solid rgba(247,168,79,.3);}
+  .risk-badge.ok{background:rgba(79,203,160,.1);color:var(--ok);border:1px solid rgba(79,203,160,.25);}
+  .bar-chart-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;cursor:pointer;}
+  .bar-chart-row:hover .bar-chart-label{color:var(--accent);}
+  .bar-chart-label{width:130px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);flex-shrink:0;transition:color .1s;}
+  .bar-chart-track{flex:1;height:14px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .bar-chart-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;}
+  .bar-chart-val{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);width:64px;text-align:right;flex-shrink:0;}
+  .pill-wrap{display:flex;flex-wrap:wrap;gap:5px;}
+  .pill{background:var(--surface2);border:1px solid var(--border-light);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 8px;border-radius:2px;}
+  .back-btn{background:none;border:none;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;padding:0 0 16px;display:inline-flex;align-items:center;gap:6px;}
+  .back-btn:hover{text-decoration:underline;}
+  .search-wrap{margin-bottom:16px;}
+  .search-input{background:var(--surface);border:1px solid var(--border-light);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 14px;border-radius:3px;width:320px;outline:none;}
+  .search-input:focus{border-color:var(--accent);}
+  .loading-msg{text-align:center;padding:60px;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:13px;}
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px;}
+  @media(max-width:900px){
+    .main-wrap{grid-template-columns:1fr;}
+    nav{position:static;height:auto;display:flex;flex-wrap:wrap;padding:10px;gap:4px;border-right:none;border-bottom:1px solid var(--border);}
+    .nav-section-label{display:none;}
+    .nav-item{padding:5px 10px;border-radius:3px;border-left:none;border-bottom:2px solid transparent;}
+    .nav-item.active{border-bottom-color:var(--accent);border-left-color:transparent;}
+    .kpi-strip{grid-template-columns:1fr 1fr;}
+    .grid-2{grid-template-columns:1fr;}
+    .renewal-account-label{width:110px;}
+    .search-input{width:100%;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <div class="header-title">QUEST CSM — <span>Dre Nash</span></div>
+    <div class="header-sub" id="data-generated">Partner Account Intelligence · Loading...</div>
+  </div>
+  <div class="header-right">
+    <div class="last-update" id="update-stamp"></div>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<div class="main-wrap">
+  <nav id="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <div class="nav-item active" onclick="showOverview()" id="nav-overview">
+      <div class="nav-account-name">All Accounts</div>
+    </div>
+    <div class="nav-section-label">Accounts</div>
+    <div id="account-nav-items"></div>
+  </nav>
+
+  <main id="main-content">
+    <div class="loading-msg" id="loading-indicator">Loading account data...</div>
+
+    <div id="overview-view" style="display:none">
+      <div class="kpi-strip" id="kpi-strip"></div>
+      <div class="section-head"><h2>Renewal Urgency</h2><div class="section-divider"></div></div>
+      <div class="renewal-bar-wrap" id="renewal-timeline"></div>
+      <div class="grid-2">
+        <div>
+          <div class="section-head"><h2>Revenue by Account</h2><div class="section-divider"></div></div>
+          <div class="panel" id="rev-by-account"></div>
+        </div>
+        <div>
+          <div class="section-head"><h2>Top Product Families</h2><div class="section-divider"></div></div>
+          <div class="panel" id="prod-family-chart"></div>
+        </div>
+      </div>
+      <div class="section-head"><h2>All Accounts</h2><div class="section-divider"></div></div>
+      <div class="search-wrap">
+        <input class="search-input" id="acct-search" type="text" placeholder="Search accounts, products, partners..." oninput="filterTable()">
+      </div>
+      <div class="panel" style="padding:0;overflow:hidden;">
+        <table class="product-table" id="accounts-table"></table>
+      </div>
+    </div>
+
+    <div id="account-detail" style="display:none">
+      <button class="back-btn" onclick="showOverview()">← Back to Overview</button>
+      <div id="account-detail-content"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+let DATA = null;
+
+const SHORT_NAMES = {
+  'PNC BANK N.A.':'PNC Bank','CORNING INCORPORATED':'Corning Inc.',
+  'AIG':'AIG','TMNA SERVICES LLC':'TMNA Services','MYLAN INC.':'Mylan Inc.',
+  'MONTEFIORE MEDICINE ACADEMIC HEALTH SYSTEM, INC.':'Montefiore',
+  'ARAMARK':'Aramark','UNITED STATES STEEL CORP':'US Steel',
+  'SFBLIC':'SFB Life Ins.','UNISYS CORP':'Unisys','SFBCIC':'SFB Casualty',
+  'S&P GLOBAL':'S&P Global','HCC INSURANCE HOLDINGS INC':'HCC Insurance',
+};
+function short(n){return SHORT_NAMES[n]||n;}
+function fmt(n){if(n>=1e6)return'$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return'$'+(n/1e3).toFixed(1)+'K';return'$'+n.toFixed(0);}
+function fmtFull(n){return'$'+n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function rc(r){return r==='critical'?'critical':r==='warning'?'warning':'ok';}
+
+async function loadData(){
+  document.getElementById('loading-indicator').style.display='block';
+  document.getElementById('overview-view').style.display='none';
+  document.getElementById('account-detail').style.display='none';
+  try {
+    const res = await fetch('data.json?v='+Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    DATA = await res.json();
+    render();
+  } catch(err){
+    document.getElementById('loading-indicator').innerHTML =
+      `<div style="color:var(--critical)">Failed to load data.json: ${err.message}<br>
+      <span style="color:var(--muted);font-size:11px">Ensure data.json exists in the docs/ folder.</span></div>`;
+  }
+}
+
+function render(){
+  document.getElementById('loading-indicator').style.display='none';
+  document.getElementById('overview-view').style.display='block';
+  const now=new Date();
+  document.getElementById('update-stamp').innerHTML='Last fetch<br>'+now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('data-generated').textContent='Partner Account Intelligence · Data as of '+DATA.generated+' · Auto-refreshes 00:00 CT';
+  buildSidebar();buildKPIs();buildRenewalTimeline();buildRevByAccount();buildProdFamilyChart();buildAccountsTable();
+}
+
+function buildSidebar(){
+  document.getElementById('account-nav-items').innerHTML=DATA.accounts.map((a,i)=>`
+    <div class="nav-item" onclick="showAccount(${i})" id="nav-acct-${i}">
+      <div class="nav-account-name" title="${a.name}">${short(a.name)}</div>
+      <div class="nav-risk-dot dot-${rc(a.renewal_risk)}"></div>
+    </div>`).join('');
+}
+
+function buildKPIs(){
+  const ks=[
+    {label:'Total Portfolio ARR',value:fmt(DATA.total_revenue),sub:fmtFull(DATA.total_revenue)},
+    {label:'Accounts Managed',value:DATA.total_accounts,sub:DATA.total_assets+' total assets'},
+    {label:'At-Risk Renewals',value:DATA.at_risk_count,sub:'< 60 days to renewal',red:true},
+    {label:'Largest Account',value:fmt(DATA.accounts[0].total_revenue),sub:short(DATA.accounts[0].name)},
+  ];
+  document.getElementById('kpi-strip').innerHTML=ks.map(k=>`
+    <div class="kpi-card"><div class="kpi-label">${k.label}</div>
+    <div class="kpi-value${k.red?' red':''}">${k.value}</div>
+    <div class="kpi-sub">${k.sub}</div></div>`).join('');
+}
+
+function buildRenewalTimeline(){
+  const sorted=[...DATA.accounts].sort((a,b)=>a.days_to_renewal-b.days_to_renewal);
+  const maxDays=600;
+  document.getElementById('renewal-timeline').innerHTML=`
+    <div class="panel-title">Days to next renewal — sorted by urgency</div>
+    ${sorted.map(a=>{
+      const pct=Math.min(100,(a.days_to_renewal/maxDays)*100);
+      const r=rc(a.renewal_risk);
+      return`<div class="renewal-bar-row" onclick="showAccountByName('${a.name.replace(/'/g,"\\'")}')">
+        <div class="renewal-account-label">${short(a.name)}</div>
+        <div class="bar-track"><div class="bar-fill ${r}" style="width:${pct.toFixed(1)}%"></div></div>
+        <div class="renewal-days ${r}">${a.days_to_renewal}d</div>
+        <div class="renewal-date">${a.next_renewal}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+function buildRevByAccount(){
+  const max=DATA.accounts.filter(a=>a.total_revenue>0)[0].total_revenue;
+  document.getElementById('rev-by-account').innerHTML=`
+    <div class="panel-title">Revenue (order product total)</div>
+    ${DATA.accounts.filter(a=>a.total_revenue>0).map(a=>`
+      <div class="bar-chart-row" onclick="showAccountByName('${a.name.replace(/'/g,"\\'")}')">
+        <div class="bar-chart-label">${short(a.name)}</div>
+        <div class="bar-chart-track"><div class="bar-chart-fill" style="width:${(a.total_revenue/max*100).toFixed(1)}%"></div></div>
+        <div class="bar-chart-val">${fmt(a.total_revenue)}</div>
+      </div>`).join('')}`;
+}
+
+function buildProdFamilyChart(){
+  const pf=DATA.pf_revenue,max=Math.max(...Object.values(pf));
+  document.getElementById('prod-family-chart').innerHTML=`
+    <div class="panel-title">Top 10 by revenue</div>
+    ${Object.entries(pf).map(([k,v])=>`
+      <div class="bar-chart-row">
+        <div class="bar-chart-label">${k}</div>
+        <div class="bar-chart-track"><div class="bar-chart-fill" style="width:${(v/max*100).toFixed(1)}%;background:linear-gradient(90deg,#7c5cfc,#4f8ef7)"></div></div>
+        <div class="bar-chart-val">${fmt(v)}</div>
+      </div>`).join('')}`;
+}
+
+function buildAccountsTable(){renderAccountTable(DATA.accounts);}
+
+function renderAccountTable(rows){
+  document.getElementById('accounts-table').innerHTML=`
+    <thead><tr>
+      <th>Account</th><th>Partner</th><th>Products</th><th>Assets</th><th>Next Renewal</th><th>Risk</th><th style="text-align:right">Revenue</th>
+    </tr></thead>
+    <tbody>${rows.map(a=>`
+      <tr onclick="showAccount(${DATA.accounts.indexOf(a)})">
+        <td style="font-weight:500">${a.name}</td>
+        <td style="color:var(--muted);font-size:11px">${a.partner==='Direct'?'—':a.partner}</td>
+        <td><div class="pill-wrap">${a.products.slice(0,3).map(p=>`<span class="pill">${p}</span>`).join('')}${a.products.length>3?`<span class="pill">+${a.products.length-3}</span>`:''}</div></td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">${a.assets}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">${a.next_renewal}</td>
+        <td><span class="risk-badge ${rc(a.renewal_risk)}">${a.renewal_risk==='ok'?'Healthy':a.renewal_risk}</span></td>
+        <td class="amount-cell">${fmtFull(a.total_revenue)}</td>
+      </tr>`).join('')}
+    </tbody>`;
+}
+
+function filterTable(){
+  if(!DATA)return;
+  const q=document.getElementById('acct-search').value.toLowerCase();
+  renderAccountTable(q?DATA.accounts.filter(a=>a.name.toLowerCase().includes(q)||a.partner.toLowerCase().includes(q)||a.products.some(p=>p.toLowerCase().includes(q))):DATA.accounts);
+}
+
+function showAccount(idx){
+  if(!DATA)return;
+  const a=DATA.accounts[idx];
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const nav=document.getElementById('nav-acct-'+idx);
+  if(nav)nav.classList.add('active');
+  document.getElementById('overview-view').style.display='none';
+  document.getElementById('account-detail').style.display='block';
+  const r=rc(a.renewal_risk);
+  const renColor=r==='critical'?'var(--critical)':r==='warning'?'var(--warn)':'var(--ok)';
+  const pct=Math.min(100,(a.days_to_renewal/600*100)).toFixed(1);
+  const assets=DATA.assets&&DATA.assets[a.name]?DATA.assets[a.name]:[];
+  document.getElementById('account-detail-content').innerHTML=`
+    <div class="account-header">
+      <div>
+        <div class="account-name-big">${a.name}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${a.sfdc_id} · <a href="https://quest.my.salesforce.com/${a.sfdc_id}" target="_blank" style="color:var(--accent);text-decoration:none">Open in SFDC ↗</a></div>
+        <div class="account-meta">
+          <div class="meta-chip">Partner: <span class="val">${a.partner}</span></div>
+          <div class="meta-chip">Assets: <span class="val">${a.assets}</span></div>
+          ${a.contact?`<div class="meta-chip">Contact: <span class="val"><a href="mailto:${a.contact}" style="color:var(--accent);text-decoration:none">${a.contact}</a></span></div>`:''}
+        </div>
+      </div>
+      <div class="account-revenue-big">
+        <div class="big-num">${fmtFull(a.total_revenue)}</div>
+        <div class="label">ORDER PRODUCT TOTAL</div>
+        <div style="margin-top:10px"><span class="risk-badge ${r}">${r==='ok'?'Healthy':r.toUpperCase()}</span></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">Next Renewal</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;color:${renColor}">${a.next_renewal}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px">${a.days_to_renewal} days from data generation date</div>
+        <div style="margin-top:14px"><div class="bar-track" style="height:8px"><div class="bar-fill ${r}" style="width:${pct}%"></div></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Product Families (${a.products.length})</div>
+        <div class="pill-wrap">${a.products.map(p=>`<span class="pill">${p}</span>`).join('')}</div>
+      </div>
+    </div>
+    <div class="section-head"><h2>All ${assets.length} Assets</h2><div class="section-divider"></div></div>
+    <div class="panel" style="padding:0;overflow:hidden;">
+      <table class="product-table">
+        <thead><tr><th>Product</th><th>Family</th><th>BU</th><th>Asset #</th><th>Qty</th><th>Maint. End</th><th style="text-align:right">Amount</th></tr></thead>
+        <tbody>${assets.length?assets.map(as=>`
+          <tr>
+            <td style="font-size:11px;max-width:260px">${as.product}</td>
+            <td>${as.family?`<span class="pill">${as.family}</span>`:''}</td>
+            <td style="font-size:10px;color:var(--muted)">${as.bu}</td>
+            <td style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">${as.asset}</td>
+            <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">${as.qty.toLocaleString()}</td>
+            <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">${as.maint}</td>
+            <td class="amount-cell">${as.amount>0?fmtFull(as.amount):'—'}</td>
+          </tr>`).join(''):'<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">No asset detail available.</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function showAccountByName(name){
+  if(!DATA)return;
+  const idx=DATA.accounts.findIndex(a=>a.name===name);
+  if(idx>=0)showAccount(idx);
+}
+
+function showOverview(){
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('nav-overview').classList.add('active');
+  document.getElementById('overview-view').style.display='block';
+  document.getElementById('account-detail').style.display='none';
+}
+
+// Auto-refresh at midnight local
+function scheduleAutoRefresh(){
+  const now=new Date(),midnight=new Date(now);
+  midnight.setHours(24,0,0,0);
+  setTimeout(()=>{loadData();scheduleAutoRefresh();},midnight-now);
+}
+
+loadData();
+scheduleAutoRefresh();
+</script>
+</body>
+</html>
